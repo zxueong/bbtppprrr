@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>珍奶大亨12.5 - 奢華帝國雲端版</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+        body { background: linear-gradient(135deg, #1e140f 0%, #32221a 100%); color: #4a3f35; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        .game-container { width: 100%; max-width: 480px; background: #fdfbf7; display: flex; flex-direction: column; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border-left: 1px solid #4a3025; border-right: 1px solid #4a3025; }
+        .pixel-canvas { width: 100%; height: 180px; background: linear-gradient(to bottom, #2b1f1d 0%, #1a100e 70%, #3a251c 100%); border-bottom: 8px solid #23140f; position: relative; overflow: hidden; padding: 12px; display: flex; align-items: flex-end; justify-content: center; box-shadow: inset 0 -15px 30px rgba(0,0,0,0.8), inset 0 10px 20px rgba(255,255,255,0.05); }
+        .bar-counter { position: absolute; bottom: 0; left: 0; width: 100%; height: 35px; background: linear-gradient(to bottom, #8c583c 0%, #543321 30%, #301b10 100%); border-top: 3px solid #d4a373; z-index: 5; box-shadow: 0 -4px 10px rgba(0,0,0,0.5); }
+        .canvas-title { position: absolute; top: 12px; left: 12px; color: #ffebd6; font-size: 11px; font-weight: bold; letter-spacing: 1px; z-index: 10; background: rgba(35, 20, 15, 0.85); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(212, 163, 115, 0.3); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .settings-gear-btn { position: absolute; top: 10px; right: 12px; background: rgba(255,255,255,0.15); color: #ffebd6; border: 1px solid rgba(255,255,255,0.25); font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; z-index: 30; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.2s; }
+        .settings-gear-btn:hover { background: rgba(255,255,255,0.3); transform: rotate(40deg); }
+        .staff-container { width: 90%; height: 100px; position: absolute; bottom: 15px; left: 5%; display: flex; justify-content: center; align-items: flex-end; gap: 10px; z-index: 6; }
+        .pixel-worker { width: 32px; height: 65px; position: relative; animation: luxuryShake 0.4s infinite ease-in-out alternate; }
+        .pixel-worker::before { content: ''; position: absolute; width: 4px; height: 4px; background: transparent; box-shadow: 3px 4px #4a3319, 4px 4px #4a3319, 5px 4px #4a3319, 2px 8px #4a3319, 3px 8px #ffd0a1, 4px 8px #ffd0a1, 5px 8px #ffd0a1, 6px 8px #4a3319, 3px 12px #111, 5px 12px #111, 4px 12px #ffd0a1, 2px 16px #ffd0a1, 3px 16px #ffd0a1, 4px 16px #ffd0a1, 5px 16px #ffd0a1, 6px 16px #ffd0a1, 3px 20px #e63946, 4px 20px #fff, 5px 20px #e63946, 2px 24px #332211, 3px 24px #b17a50, 4px 24px #b17a50, 5px 24px #b17a50, 6px 24px #332211, 1px 28px #332211, 2px 28px #b17a50, 3px 28px #b17a50, 4px 28px #b17a50, 5px 28px #b17a50, 6px 28px #b17a50, 7px 28px #332211, 2px 32px #b17a50, 3px 32px #b17a50, 4px 32px #b17a50, 5px 32px #b17a50, 6px 32px #b17a50, 2px 36px #222, 3px 36px #222, 5px 36px #222, 6px 36px #222, 2px 40px #111, 3px 40px #111, 5px 40px #111, 6px 40px #111; }
+        .pixel-worker::after { content: '🧋'; position: absolute; top: 20px; right: -8px; font-size: 12px; animation: shakerMove 0.2s infinite alternate; }
+        .stage-fx-layer { position: absolute; width: 100%; height: 100%; top:0; left:0; pointer-events:none; z-index:3; }
+        .ambient-glow { position: absolute; width: 120px; height: 120px; background: radial-gradient(circle, rgba(212,163,115,0.15) 0%, transparent 70%); top: -20px; left: 35%; animation: pulseGlow 3s infinite alternate; }
+        .fly { position: absolute; width: 4px; height: 4px; background: #000; border-radius: 50%; opacity: 0.6; animation: flyMove 0.4s infinite alternate; }
+        .heart { position: absolute; color: #ff477e; font-size: 16px; text-shadow: 0 0 5px rgba(255,71,126,0.5); animation: heartUp 1.2s ease-out forwards; pointer-events: none; }
+        .ant { position: absolute; width: 5px; height: 3px; background: #1a0f08; border-radius: 2px; animation: antWalk 6s infinite linear; }
+        .glow-drop { position: absolute; width: 8px; height: 8px; background: #39ff14; border-radius: 50%; box-shadow: 0 0 12px #39ff14; animation: chemicalDrop 1.2s infinite linear; }
+        .crit-flash { position: absolute; top:0; left:0; width:100%; height:100%; background-color: white; opacity: 0; z-index: 100; pointer-events: none; }
+        .flash-active { animation: flashAnim 0.25s ease-out; }
+        .war-alert-banner { background: #e63946; color: white; text-align: center; font-size: 12px; font-weight: bold; padding: 8px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .war-clean-btn { background: #ffb703; color: #23140f; border: none; padding: 4px 12px; font-size: 11px; font-weight: bold; border-radius: 20px; cursor: pointer; margin-left: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .control-panel { padding: 16px; background: white; z-index: 10; border-top-left-radius: 16px; border-top-right-radius: 16px; margin-top: -12px; position: relative; box-shadow: 0 -10px 20px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #5c3a21; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 1px; }
+        .subtitle { text-align: center; color: #a67c52; margin: 4px 0 15px 0; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; }
+        .account-hub-box { margin-bottom: 12px; }
+        .account-trigger-btn { width: 100%; height: 44px; background: linear-gradient(135deg, #b78453 0%, #8c583c 100%); color: white; border: 1px solid #70432c; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 8px rgba(140,88,60,0.25), inset 0 1px 2px rgba(255,255,255,0.2); transition: all 0.2s; }
+        .account-trigger-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(140,88,60,0.2); }
+        .logged-status-text { color: #2a9d8f; font-weight: bold; font-size: 13px; text-align: center; margin-top: 4px; display: none; }
+        .universal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(26, 16, 14, 0.75); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .popup-modal { background: #fdfbf7; border-radius: 16px; width: 88%; max-width: 360px; padding: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 2px solid #d4a373; animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .popup-modal h3 { margin: 0 0 15px 0; color: #543321; text-align: center; font-size: 18px; font-weight: bold; }
+        .modal-input-group { margin-bottom: 14px; }
+        .modal-input-group label { display: block; font-size: 12px; color: #7a6655; font-weight: bold; margin-bottom: 4px; }
+        .modal-input-group input { width: 100%; padding: 10px; border: 2px solid #e1d3c1; border-radius: 8px; font-size: 14px; background: #fffdfa; color: #4a3f35; transition: border 0.2s; }
+        .modal-input-group input:focus { outline: none; border-color: #b78453; }
+        .modal-btn-row { display: flex; gap: 8px; margin-top: 18px; }
+        .modal-prime-btn { flex: 1; background: #2a9d8f; color: white; border: none; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .modal-sec-btn { flex: 1; background: #8c583c; color: white; border: none; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .modal-close-btn { width: 100%; background: #ae9783; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; font-size: 12px; }
+        .save-action-box { display: flex; gap: 8px; margin-bottom: 12px; }
+        .save-btn { flex: 2; background-color: #2a9d8f; color: white; border: none; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(42,157,143,0.2); }
+        .reset-btn { flex: 1; background-color: #ae9783; color: white; border: none; padding: 8px; font-size: 11px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .dashboard { background: linear-gradient(to bottom, #fffdfa, #f7f1e8); border: 2px solid #e8decb; border-radius: 12px; padding: 12px; display: flex; justify-content: space-around; text-align: center; margin-bottom: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .stat-box h3 { margin: 0; font-size: 12px; color: #8c6239; letter-spacing: 0.5px; }
+        .stat-box p { margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #d4a373; text-shadow: 0 1px 0px white; }
+        .action-section { text-align: center; margin-bottom: 10px; width: 100%; }
+        .main-btn { width: 100%; height: 75px; background: linear-gradient(135deg, #8c6239 0%, #5c3a21 100%); color: white; border: none; font-size: 21px; font-weight: bold; border-radius: 16px; cursor: pointer; box-shadow: 0 6px 15 rgba(92, 58, 33, 0.35), inset 0 2px 0px rgba(255,255,255,0.15); transition: all 0.1s; }
+        .main-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(92, 58, 33, 0.3); }
+        #log-msg { text-align: center; color: #8c6a4e; font-weight: bold; height: 36px; margin-bottom: 8px; font-size: 11.5px; display: flex; align-items: center; justify-content: center; padding: 0 8px; }
+        .tab-box { display: flex; gap: 6px; margin-bottom: 10px; }
+        .tab-box button { flex: 1; padding: 10px; background: #e6ccb2; color: #543321; border: none; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+        .tab-box button.active { background: #8c6239; color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+        .upgrade-scroll-view { flex: 1; overflow-y: auto; padding: 0 12px 25px 12px; background-color: #faf8f5; border-top: 1px solid #ebdccb; min-height: 240px; }
+        .panel-title { font-size: 13px; font-weight: bold; border-bottom: 2px solid #e8decb; padding-bottom: 4px; margin: 16px 0 8px 0; color: #543321; letter-spacing: 0.5px; }
+        .upgrade-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 14px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #eedec9; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .upgrade-info h4 { margin: 0; font-size: 13.5px; color: #3d2516; }
+        .upgrade-info p { margin: 3px 0 0 0; font-size: 11px; color: #8c7664; }
+        .premium { border: 1px solid #ffd0a1; background: #fffefb; }
+        .premium h4 { color: #b76e1f; font-weight: bold; }
+        .upgrade-btn { background-color: #e6ccb2; color: #4a3f35; border: none; height: 34px; min-width: 105px; font-size: 11px; font-weight: bold; border-radius: 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .upgrade-btn:disabled { background-color: #e0e0e0; color: #a0a0a0; cursor: not-allowed; }
+        .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+        .city-card { background: white; border: 2px solid #ebdccb; border-radius: 12px; padding: 12px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; min-height: 110px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .city-card.locked { background: #f0f0f0; opacity: 0.6; border-style: dashed; cursor: not-allowed; }
+        .city-card.active { border-color: #2a9d8f; background: #f4fbf9; box-shadow: 0 4px 8px rgba(42,157,143,0.1); }
+        .city-card h5 { margin: 0 0 3px 0; font-size: 14px; color: #3d2516; }
+        .city-card p { margin: 0 0 8px 0; font-size: 10.5px; color: #7a6655; line-height: 1.3; }
+        .city-card .status-tag { font-size: 10px; font-weight: bold; padding: 4px; border-radius: 6px; background: #e6ccb2; color: #543321;}
+        .city-card.active .status-tag { background: #2a9d8f; color: white; }
+        .rank-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+        .rank-table th { background: #8c583c; color: white; padding: 8px 6px; text-align: left; }
+        .rank-table td { padding: 10px 6px; border-bottom: 1px solid #eedec9; }
+        .rank-hit-btn { background: #e63946; color: white; border: none; padding: 3px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 14px; color: #4a3f35; }
+        .setting-row input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #8c583c; }
+        .setting-row input[type="range"] { width: 55%; accent-color: #8c583c; }
+        .event-overlay { position: absolute; top:0; left:0; width:100%; height:180px; background: rgba(20,10,8,0.92); z-index: 50; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; padding: 15px; }
+        .event-title { font-size: 16px; font-weight: bold; color: #ff3366; margin-bottom: 4px; text-shadow: 0 0 10px rgba(255,51,102,0.5); }
+        .event-btn { background: #ff3366; color: white; border: none; padding: 8px 18px; font-size: 13px; font-weight: bold; border-radius: 20px; margin-top: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(255,51,102,0.4); }
+        @keyframes luxuryShake { 0% { transform: translateY(0) scaleX(1); } 100% { transform: translateY(-4px) scaleX(0.98); } }
+        @keyframes shakerMove { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(-3px, -3px) rotate(-15deg); } }
+        @keyframes pulseGlow { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes modalPop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes flyMove { 0% { transform: translate(0,0); } 100% { transform: translate(4px, 4px); } }
+        @keyframes heartUp { 0% { transform: translateY(0) scale(0.7); opacity: 1; } 100% { transform: translateY(-50px) scale(1.3); opacity: 0; } }
+        @keyframes antWalk { 0% { left: -20px; } 100% { left: 500px; } }
+        @keyframes chemicalDrop { 0% { transform: translateY(-10px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(190px); opacity: 0; } }
+        @keyframes flashAnim { 0% { opacity: 0.6; } 100% { opacity: 0; } }
+        .emergency-alert { animation: redAlert 0.4s infinite alternate !important; }
+        @keyframes redAlert { 0% { background: #1a100e; } 100% { background: #7a0913; } }
+        .earthquake-shake { animation: quakeAnim 0.06s infinite alternate; }
+        @keyframes quakeAnim { 0% { transform: translate(2px,1px); } 100% { transform: translate(-2px,-1px); } }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <audio id="bgm-music" loop src="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg"></audio>
+    <audio id="se-click" src="https://actions.google.com/sounds/v1/foley/coins_drop_single.ogg"></audio>
+    <audio id="se-upgrade" src="https://actions.google.com/sounds/v1/transmissions/climb_down.ogg"></audio>
+    <audio id="se-alert" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"></audio>
+
+    <div class="pixel-canvas" id="canvas-bg">
+        <div class="canvas-title" id="canvas-title-text">⚙️ 正在校正頂級茶葉...</div>
+        <button class="settings-gear-btn" onclick="toggleSettingsModal(true)">⚙️</button>
+        <div class="crit-flash" id="flash-effect"></div>
+        <div class="stage-fx-layer" id="canvas-fx-layer"><div class="ambient-glow"></div></div>
+        
+        <div class="event-overlay" id="event-box">
+            <div class="event-title" id="event-title-text">🚨 突發狀況</div>
+            <div id="event-desc-text" style="font-size:12px; max-width:280px; margin-bottom:5px;">描述</div>
+            <button class="event-btn" id="event-action-btn" onclick="handleEventClick()">行動</button>
+            <div style="font-size:10px; margin-top:5px; color:#ffb703; font-weight:bold;">緊急倒數: <span id="event-timer">10</span> 秒</div>
+        </div>
+
+        <div class="staff-container" id="pixel-staff-box"></div>
+        <div class="bar-counter"></div>
+    </div>
+
+    <div class="war-alert-banner" id="war-banner">
+        ⚠️ 慘遭同行叫記者去拍蒼蠅！全台GPS暴跌 80%！
+        <button class="war-clean-btn" onclick="executeChickenClean()">🧧 發雞排洗白 ($<span id="clean-cost-lbl">0</span>)</button>
+    </div>
+
+    <div class="control-panel">
+        <h1>🧋 珍奶大亨 12.5</h1>
+        <div class="subtitle">老子才是老大，珍奶喝到爽爽叫</div>
+
+        <div class="account-hub-box">
+            <button class="account-trigger-btn" onclick="toggleAccountModal(true)">
+                👤 <span id="btn-account-text">管理我的飲料帝國帳號</span>
+            </button>
+            <div class="logged-status-text" id="logged-status-lbl">👤 目前登入身分：<span id="lbl-status-user">遊客</span></div>
+        </div>
+
+        <div class="save-action-box">
+            <button class="save-btn" id="manual-save-btn" onclick="triggerManualSave()">💾 手動同步至雲端</button>
+            <button class="reset-btn" onclick="resetLocalData()">重置進度</button>
+        </div>
+
+        <div class="dashboard">
+            <div class="stat-box"><h3>手頭現金</h3><p>$<span id="money">0</span></p></div>
+            <div class="stat-box"><h3>總GPS</h3><p>$<span id="gps">0</span></p></div>
+        </div>
+
+        <div id="log-msg">店長，準備好壓榨員工賺取黑心第一桶金了嗎？</div>
+        <div class="action-section"><button class="main-btn" id="click-btn">🧋幹！手動搖一杯啦</button></div>
+        
+        <div class="tab-box">
+            <button class="tab-btn active" id="tab-upgrade-btn" onclick="switchTab('upgrade')">🏪 割韭菜升級</button>
+            <button class="tab-btn" id="tab-map-btn" onclick="switchTab('map')">🗺️ 插旗全台灣</button>
+            <button class="tab-btn" id="tab-rank-btn" onclick="switchTab('rank')">🏆 全服富豪榜</button>
+        </div>
+    </div>
+
+    <div class="upgrade-scroll-view" id="scroll-content-area"></div>
+</div>
+
+<div class="universal-overlay" id="account-overlay-box">
+    <div class="popup-modal">
+        <h3>👤 總部帳號對接管理系統</h3>
+        <div class="modal-input-group">
+            <label>店長註冊帳號</label>
+            <input type="text" id="auth-user" placeholder="輸入英數帳號">
+        </div>
+        <div class="modal-input-group">
+            <label>資料防盜密碼</label>
+            <input type="password" id="auth-pass" placeholder="輸入登入密碼">
+        </div>
+        <div class="modal-btn-row">
+            <button class="modal-prime-btn" onclick="handleAuth('login')">安全登入</button>
+            <button class="modal-sec-btn" onclick="handleAuth('register')" style="background:#6c757d;">建立新帳號</button>
+        </div>
+        <div id="modal-logout-zone" style="display:none; text-align:center; margin-top:15px; border-top:1px solid #eedec9; padding-top:10px;">
+            <button class="modal-prime-btn" onclick="logout()" style="background:#e63946; width:100%;">🚪 登出目前店長身分</button>
+        </div>
+        <button class="modal-close-btn" onclick="toggleAccountModal(false)">關閉視窗</button>
+    </div>
+</div>
+
+<div class="universal-overlay" id="settings-overlay-box">
+    <div class="popup-modal">
+        <h3>⚙️ 總部大亨聲音設定面板</h3>
+        <div class="setting-row"><span>開啟背景音樂 (BGM)</span><input type="checkbox" id="chk-bgm" checked onchange="applySoundSettings()"></div>
+        <div class="setting-row"><span>開啟遊戲音效 (SE)</span><input type="checkbox" id="chk-se" checked onchange="applySoundSettings()"></div>
+        <div class="setting-row"><span>主音量調節</span><input type="range" id="rng-volume" min="0" max="100" value="50" oninput="applySoundSettings()"></div>
+        <button class="modal-close-btn" onclick="toggleSettingsModal(false)">儲存並重返戰場</button>
+    </div>
+</div>
+
+<script>
+    // ⚠️【核心對接關鍵】請在此處置換您的 Google Apps Script 重新部署後的 URL（尾端要是 /exec）
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby1mQF8c7GMzfgwOpYZkv-towo-Ish91LTyt8ziXWQDSjbjjq2JTnjP7mqqRv11gwALlg/exec";
+    
+    let gameState = {
+        money: 0, totalEarned: 0, 
+        clickPower: 1, 
+        staffCount: 0, staffCost: 15, 
+        mintCount: 0, mintCost: 80,
+        recipeCount: 0, recipeCost: 50, 
+        deliveryCount: 0, deliveryCost: 500, 
+        machineCount: 0, machineCost: 1800,
+        chickenCount: 0, chickenCost: 4500, 
+        managerCount: 0, managerCost: 16000, 
+        wallCount: 0, wallCost: 24000,
+        shopCount: 0, shopCost: 60000, 
+        southCount: 0, southCost: 93000,
+        username: "", password: "", currentCity: "taipei",
+        unlockedCities: { taipei: 1, hsinchu: 0, taichung: 0, tainan: 0, hualien: 0, kaohsiung: 0 },
+        underAttack: false 
+    };
+
+    const citiesConfig = {
+        taipei: { name: "台北總店", cost: 0, desc: "【天龍高租金】高通膨基礎關卡，適合奠定黑心基業。", bg: "#2b1f1d" },
+        hsinchu: { name: "新竹分店", cost: 250000, desc: "【九降風加持 💨】狂風灌進店內！GPS 永久增加 20%。", bg: "#1a2e26" },
+        taichung: { name: "台中分店", cost: 2500000, desc: "【消波塊恐嚇流 🔫】點擊 5% 機率搶奪同業 50倍慶記暴擊金！", bg: "#25333a" },
+        tainan: { name: "台南分店", cost: 25000000, desc: "【全糖螞蟻重災區 🐜】甜度爆表！該店所有被動營收直接翻 2 倍！", bg: "#4a1930" },
+        hualien: { name: "花蓮分店", cost: 150000000, desc: "【大自然免費搖 🌋】點擊收益 +50%，但偶爾會震歪停工。", bg: "#222d1b" },
+        kaohsiung: { name: "高雄分店", cost: 1500000000, desc: "【暖心烈日 ☀️】大魔王關！全台灣總收入原地直接暴增 3 倍！", bg: "#4e2110" }
+    };
+
+    let currentTab = "upgrade";
+    let activeEvent = null;
+    let eventClicks = 0;
+    let eventTimeLeft = 10;
+    let eventTimerId = null;
+    let eventDoubleBonusActive = false;
+    let hualienStopMachine = false;
+    let soundConfig = { bgmEnabled: true, seEnabled: true, masterVolume: 0.5 };
+    let globalLeaderboard = [];
+    let chickenCleanBonus = false;
+
+    function checkAttackPermission() {
+        return (gameState.money >= 200000 && gameState.unlockedCities.hsinchu === 1);
+    }
+
+    function formatMoney(num) {
+        num = Math.floor(num);
+        if (num < 10000) return num.toString();
+        if (num < 100000000) return (num / 10000).toFixed(2) + " 萬";
+        return (num / 100000000).toFixed(2) + " 億";
+    }
+
+    function showLog(text) {
+        elLog.innerText = text;
+    }
+
+    const elMoney = document.getElementById('money');
+    const elGps = document.getElementById('gps');
+    const elLog = document.getElementById('log-msg');
+    const elClickBtn = document.getElementById('click-btn');
+    const elScrollArea = document.getElementById('scroll-content-area');
+    const elStaffBox = document.getElementById('pixel-staff-box');
+    const elCanvasBg = document.getElementById('canvas-bg');
+    const elCanvasTitle = document.getElementById('canvas-title-text');
+    const elFlashEffect = document.getElementById('flash-effect');
+    const elFxLayer = document.getElementById('canvas-fx-layer');
+    const elEventBox = document.getElementById('event-box');
+    const elEventTitle = document.getElementById('event-title-text');
+    const elEventDesc = document.getElementById('event-desc-text');
+    const elEventActionBtn = document.getElementById('event-action-btn');
+    const elEventTimer = document.getElementById('event-timer');
+    const elSettingsOverlay = document.getElementById('settings-overlay-box');
+    const elAccountOverlay = document.getElementById('account-overlay-box');
+    const elWarBanner = document.getElementById('war-banner');
+    const elCleanCostLbl = document.getElementById('clean-cost-lbl');
+
+    function playAudio(id) {
+        let audio = document.getElementById(id);
+        if(!audio) return;
+        if (id === "bgm-music") {
+            if (soundConfig.bgmEnabled) {
+                audio.volume = soundConfig.masterVolume * 0.4;
+                if (audio.paused) audio.play().catch(()=>{});
+            } else {
+                audio.pause();
+            }
+        } else {
+            if (soundConfig.seEnabled) {
+                audio.volume = soundConfig.masterVolume;
+                audio.currentTime = 0;
+                audio.play().catch(()=>{});
+            }
+        }
+    }
+
+    function toggleSettingsModal(show) {
+        elSettingsOverlay.style.display = show ? "flex" : "none";
+    }
+    function toggleAccountModal(show) {
+        elAccountOverlay.style.display = show ? "flex" : "none";
+    }
+
+    function applySoundSettings() {
+        soundConfig.bgmEnabled = document.getElementById('chk-bgm').checked;
+        soundConfig.seEnabled = document.getElementById('chk-se').checked;
+        soundConfig.masterVolume = document.getElementById('rng-volume').value / 100;
+        playAudio("bgm-music");
+    }
+
+    function updatePixelGraphics() {
+        elFxLayer.innerHTML = '<div class="ambient-glow"></div>';
+        elStaffBox.innerHTML = '';
+        elCanvasBg.className = "pixel-canvas";
+        let m = gameState.money;
+        let stageName = "";
+        
+        if(m < 50000) {
+            stageName = "🏪 新創路邊攤";
+            elCanvasBg.style.background = `linear-gradient(to bottom, ${citiesConfig[gameState.currentCity].bg} 0%, #111 100%)`;
+            for(let i=0; i<4; i++) {
+                let fly = document.createElement('div');
+                fly.className = 'fly';
+                fly.style.top = Math.random()*120+"px";
+                fly.style.left = Math.random()*90+"%";
+                fly.style.animationDelay = Math.random()+"s";
+                elFxLayer.appendChild(fly);
+            }
+        } else if(m < 1000000) {
+            stageName = "🥤 連鎖小店面";
+            elCanvasBg.style.background = `linear-gradient(to bottom, ${citiesConfig[gameState.currentCity].bg} 0%, #1e1510 50%, #110c08 100%)`;
+            for(let i=0; i<5; i++) {
+                let ant = document.createElement('div');
+                ant.className = 'ant';
+                ant.style.bottom = "36px";
+                ant.style.animationDelay = (i * 1.2)+"s";
+                elFxLayer.appendChild(ant);
+            }
+        } else {
+            stageName = "🏰 奢華旗艦帝國";
+            elCanvasBg.style.background = `linear-gradient(to bottom, #4a3319 0%, #23140f 40%, #0c0604 100%)`;
+            elCanvasBg.classList.add("emergency-alert");
+            for(let i=0; i<2; i++) {
+                let drop = document.createElement('div');
+                drop.className = 'glow-drop';
+                drop.style.left = (30 + i*40) + "%";
+                drop.style.animationDelay = Math.random()+"s";
+                elFxLayer.appendChild(drop);
+            }
+        }
+
+        if(hualienStopMachine) {
+            elCanvasBg.classList.add("earthquake-shake");
+            elCanvasTitle.innerText = `🌋 花蓮大地震！機台歪掉停工中！`;
+        } else {
+            elCanvasTitle.innerText = `${citiesConfig[gameState.currentCity].name} | 規模：${stageName}`;
+        }
+
+        let visualStaff = Math.min(gameState.staffCount, 10);
+        for(let i=0; i<visualStaff; i++) {
+            let p = document.createElement('div');
+            p.className = 'pixel-worker';
+            p.style.animationDelay = (i * 0.15) + "s";
+            elStaffBox.appendChild(p);
+        }
+    }
+
+    function triggerCritEffect() {
+        elFlashEffect.className = "crit-flash";
+        void elFlashEffect.offsetWidth;
+        elFlashEffect.classList.add("flash-active");
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('tab-upgrade-btn').classList.toggle('active', tab === 'upgrade');
+        document.getElementById('tab-map-btn').classList.toggle('active', tab === 'map');
+        document.getElementById('tab-rank-btn').classList.toggle('active', tab === 'rank');
+        renderContentArea();
+    }
+
+    function renderContentArea() {
+        if(currentTab === "upgrade") {
+            renderUpgrades();
+        } else if(currentTab === "map") {
+            renderMap();
+        } else if(currentTab === "rank") {
+            renderRank();
+        }
+    }
+
+    function renderUpgrades() {
+        let items = [
+            { id: "staff", name: "👨‍🎓 廉價勞工工讀生", cost: gameState.staffCost, count: gameState.staffCount, desc: "每秒收益 +1，解鎖極限為 10 人 (會晃動)" },
+            { id: "recipe", name: "🧪 科技與狠活配方", cost: gameState.recipeCost, count: gameState.recipeCount, desc: "化學黑科技！提升手動點擊收益 (點擊力 +1)" },
+            { id: "mint", name: "🌿 頂級超提神薄荷", cost: gameState.mintCost, count: gameState.mintCount, desc: "加量不加價！每秒收益 +5" },
+            { id: "delivery", name: "🛵 外送車隊", cost: gameState.deliveryCost, count: gameState.deliveryCount, desc: "全台狂飆！每秒收益 +20" },
+            { id: "machine", name: "🤖 自動封口機", cost: gameState.machineCost, count: gameState.machineCount, desc: "黑心自動化！每秒收益 +50" },
+            { id: "chicken", name: "🍗 炸雞排", cost: gameState.chickenCost, count: gameState.chickenCount, desc: "防勞檢副業！每秒收益 +200" },
+            { id: "manager", name: "👔 區域經理", cost: gameState.managerCost, count: gameState.managerCount, desc: "洗腦型幹部！每秒收益 +500" },
+            { id: "wall", name: "🧱 硬核防黑粉圍牆", cost: gameState.wallCost, count: gameState.wallCount, desc: "物理防禦！每秒收益 +1000" },
+            { id: "shop", name: "🏰 奢華帝國旗艦店", cost: gameState.shopCost, count: gameState.shopCount, desc: "打卡聖地！每秒收益 +2500" },
+            { id: "south", name: "🏖️ 南部店員無薪假", cost: gameState.southCost, count: gameState.southCount, desc: "功德無量！每秒收益 +6000" }
+        ];
+
+        let html = `<div class="panel-title">🏪 割韭菜總部升級商店</div>`;
+        items.forEach(it => {
+            let disabled = gameState.money < it.cost ? "disabled" : "";
+            let premiumClass = (it.id === "shop" || it.id === "south") ? "premium" : "";
+            if (it.id === "staff" && gameState.staffCount >= 10) {
+                html += `
+                <div class="upgrade-item ${premiumClass}">
+                    <div class="upgrade-info">
+                        <h4>${it.name}</h4>
+                        <p>${it.desc} <span style="color:#2a9d8f;">(已達滿編 10 人)</span></p>
+                    </div>
+                    <button class="upgrade-btn" disabled>已滿編</button>
+                </div>`;
+            } else {
+                html += `
+                <div class="upgrade-item ${premiumClass}">
+                    <div class="upgrade-info">
+                        <h4>${it.name} <span style="color:#e67e22;">(已購: ${it.count})</span></h4>
+                        <p>${it.desc}</p>
+                    </div>
+                    <button class="upgrade-btn" ${disabled} onclick="buyUpgrade('${it.id}', ${it.cost})">$${formatMoney(it.cost)}</button>
+                </div>`;
+            }
+        });
+        elScrollArea.innerHTML = html;
+    }
+
+    function buyUpgrade(id, cost) {
+        if(gameState.money < cost) return;
+        if(id === "staff" && gameState.staffCount >= 10) return;
+
+        gameState.money -= cost;
+        playAudio("se-upgrade");
+
+        if(id === "staff") {
+            gameState.staffCount++;
+            gameState.staffCost = Math.floor(gameState.staffCost * 1.22);
+        } else if(id === "recipe") {
+            gameState.recipeCount++;
+            gameState.clickPower += 1;
+            gameState.recipeCost = Math.floor(gameState.recipeCost * 1.25);
+        } else if(id === "mint") {
+            gameState.mintCount++;
+            gameState.mintCost = Math.floor(gameState.mintCost * 1.22);
+        } else if(id === "delivery") {
+            gameState.deliveryCount++;
+            gameState.deliveryCost = Math.floor(gameState.deliveryCost * 1.22);
+        } else if(id === "machine") {
+            gameState.machineCount++;
+            gameState.machineCost = Math.floor(gameState.machineCost * 1.22);
+        } else if(id === "chicken") {
+            gameState.chickenCount++;
+            gameState.chickenCost = Math.floor(gameState.chickenCost * 1.22);
+        } else if(id === "manager") {
+            gameState.managerCount++;
+            gameState.managerCost = Math.floor(gameState.managerCost * 1.22);
+        } else if(id === "wall") {
+            gameState.wallCount++;
+            gameState.wallCost = Math.floor(gameState.wallCost * 1.22);
+        } else if(id === "shop") {
+            gameState.shopCount++;
+            gameState.shopCost = Math.floor(gameState.shopCost * 1.25);
+        } else if(id === "south") {
+            gameState.southCount++;
+            gameState.southCost = Math.floor(gameState.southCost * 1.25);
+        }
+
+        updateUI();
+        renderContentArea();
+    }
+
+    function renderMap() {
+        let html = `<div class="panel-title">🗺️ 插旗全台灣分店擴張地圖</div><div class="map-grid">`;
+        for(let key in citiesConfig) {
+            let conf = citiesConfig[key];
+            let isUnlocked = gameState.unlockedCities[key] === 1;
+            let isActive = gameState.currentCity === key;
+            
+            if(isUnlocked) {
+                html += `
+                <div class="city-card ${isActive ? 'active' : ''}" onclick="selectCity('${key}')">
+                    <h5>${conf.name}</h5>
+                    <p>${conf.desc}</p>
+                    <span class="status-tag">${isActive ? '🌟 營運中' : '🚗 巡視此店'}</span>
+                </div>`;
+            } else {
+                let canAfford = gameState.money >= conf.cost;
+                html += `
+                <div class="city-card locked" style="opacity: ${canAfford?1:0.55};" onclick="unlockCity('${key}', ${conf.cost})">
+                    <h5>🔒 ${conf.name}</h5>
+                    <p style="font-size:9.5px; color:#e63946; font-weight:bold;">解鎖資金: $${formatMoney(conf.cost)}</p>
+                    <span class="status-tag" style="background:${canAfford?'#2a9d8f':'#ae9783'}; color:white;">${canAfford?'💰 點擊解鎖':'資金不足'}</span>
+                </div>`;
+            }
+        }
+        html += `</div>`;
+        elScrollArea.innerHTML = html;
+    }
+
+    function selectCity(key) {
+        if(hualienStopMachine) return;
+        gameState.currentCity = key;
+        showLog(`🚀 移駕至【${citiesConfig[key].name}】進行大亨巡視！`);
+        updateUI();
+        renderContentArea();
+    }
+
+    function unlockCity(key, cost) {
+        if(gameState.money < cost) {
+            showLog(`❌ 擴張失敗！董事會不批核，還差 $${formatMoney(cost - gameState.money)} 的黑心資金！`);
+            return;
+        }
+        gameState.money -= cost;
+        gameState.unlockedCities[key] = 1;
+        gameState.currentCity = key;
+        playAudio("se-upgrade");
+        showLog(`🎉 賀！成功解鎖並插旗【${citiesConfig[key].name}】！全台排隊瘋搶！`);
+        updateUI();
+        renderContentArea();
+    }
+
+    function renderRank() {
+        let pActive = checkAttackPermission();
+        let html = `
+        <div class="panel-title">🏆 奢華珍奶全服富豪戰略榜</div>
+        <p style="font-size:10.5px; color:#8c6a4e; margin:0 0 8px 0; line-height:1.4;">
+            💡 <b>跨服戰略法則</b>：當您手頭現金達 <b>$20萬</b> 且 <b>解鎖新竹分店</b>，即可對其他玩家發動商戰（派記者去對手店裡拍蒼蠅），使其被動營收 GPS 暴跌 80%！
+        </p>
+        <table class="rank-table">
+            <thead>
+                <tr>
+                    <th>名次</th>
+                    <th>店長名稱</th>
+                    <th>總資產</th>
+                    <th>目前狀態</th>
+                    <th>商戰反擊</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        if(globalLeaderboard.length === 0) {
+            html += `<tr><td colspan="5" style="text-align:center; color:#999;">正在連線雲端資料庫拉取對手名冊...</td></tr>`;
+        } else {
+            globalLeaderboard.forEach((p, idx) => {
+                let isMe = p.name === gameState.username;
+                let rowBg = isMe ? "style='background:#f4fbf9; font-weight:bold;'" : "";
+                let statusText = p.underAttack ? "<span style='color:#e63946; font-weight:bold;'>🦟 滿屋蒼蠅</span>" : "<span style='color:#2a9d8f;'>🟢 正常營運</span>";
+                let actionBtn = "";
+                if(isMe) {
+                    actionBtn = "<span style='color:#999; font-size:11px;'>自營店</span>";
+                } else {
+                    if(pActive) {
+                        actionBtn = `<button class="rank-hit-btn" onclick="launchAttack('${p.name}')">拍蒼蠅</button>`;
+                    } else {
+                        actionBtn = `<button class="rank-hit-btn" style="background:#ccc; cursor:not-allowed;" disabled>條件鎖定</button>`;
+                    }
+                }
+                html += `
+                <tr ${rowBg}>
+                    <td>${idx+1}</td>
+                    <td>${p.name} ${isMe?'(我)':''}</td>
+                    <td style="color:#d4a373; font-weight:bold;">$${formatMoney(p.money)}</td>
+                    <td>${statusText}</td>
+                    <td>${actionBtn}</td>
+                </tr>`;
+            });
+        }
+        html += `</tbody></table>`;
+        elScrollArea.innerHTML = html;
+    }
+
+    function calculateGPS() {
+        if(hualienStopMachine) return 0;
+
+        let total = 0;
+        total += gameState.staffCount * 1;
+        total += gameState.mintCount * 5;
+        total += gameState.deliveryCount * 20;
+        total += gameState.machineCount * 50;
+        total += gameState.chickenCount * 200;
+        total += gameState.managerCount * 500;
+        total += gameState.wallCount * 1000;
+        total += gameState.shopCount * 2500;
+        total += gameState.southCount * 6000;
+
+        if(gameState.currentCity === "hsinchu") {
+            total = Math.floor(total * 1.2);
+        }
+        if(gameState.currentCity === "tainan") {
+            total = Math.floor(total * 2.0);
+        }
+        if(gameState.currentCity === "kaohsiung") {
+            total = Math.floor(total * 3.0);
+        }
+        if(gameState.underAttack) {
+            total = Math.floor(total * 0.2);
+        }
+        return total;
+    }
+
+    function updateUI() {
+        elMoney.innerText = formatMoney(gameState.money);
+        let currentGps = calculateGPS();
+        elGps.innerText = formatMoney(currentGps);
+        
+        if(gameState.underAttack) {
+            elWarBanner.style.display = "block";
+            let cost = Math.floor(gameState.totalEarned * 0.05);
+            if(cost < 3000) cost = 3000;
+            elCleanCostLbl.innerText = formatMoney(cost);
+        } else {
+            elWarBanner.style.display = "none";
+        }
+        
+        updatePixelGraphics();
+    }
+
+    elClickBtn.onclick = (e) => {
+        let p = gameState.clickPower;
+        if(gameState.currentCity === "hualien") {
+            p = Math.floor(p * 1.5);
+        }
+        
+        if(gameState.currentCity === "taichung" && Math.random() < 0.05) {
+            let bonus = calculateGPS() * 50;
+            if (bonus < 888) bonus = 888;
+            gameState.money += bonus;
+            gameState.totalEarned += bonus;
+            triggerCritEffect();
+            showLog(`🔫 【台中慶記暴擊！】消波塊威脅成功，搶來同業大筆贖金 $${formatMoney(bonus)}！`);
+            playAudio("se-alert");
+        }
+
+        if(eventDoubleBonusActive) {
+            p = p * 2;
+        }
+
+        gameState.money += p;
+        gameState.totalEarned += p;
+        playAudio("se-click");
+
+        let heart = document.createElement('div');
+        heart.className = 'heart';
+        heart.innerText = chickenCleanBonus ? "🍗+$"+p : "🧋+$"+p;
+        let rect = elClickBtn.getBoundingClientRect();
+        heart.style.left = (Math.random()*60 + 20) + "%";
+        heart.style.top = "60px";
+        elCanvasBg.appendChild(heart);
+        setTimeout(() => heart.remove(), 1200);
+
+        if(activeEvent && activeEvent.type === "click") {
+            eventClicks++;
+            elEventDesc.innerText = `💥 狂搖進度：${eventClicks} / ${activeEvent.target}`;
+            if(eventClicks >= activeEvent.target) {
+                resolveRandomEvent(true);
+            }
+        }
+
+        updateUI();
+    };
+
+    function triggerRandomEvent() {
+        if(activeEvent) return;
+        
+        let pool = [
+            { type: "click", title: "🚨 限時爆單排隊潮！", desc: "店外突然排了500人！限時內疯狂搖奶 15 次！", target: 15 },
+            { type: "choice", title: "⚖️ 衛生局無預警勞檢！", desc: "被檢舉超標使用化學防腐劑！你要如何應對？", opt1: "給紅包塞嘴巴 ($5萬)", opt2: "正面硬剛認罰 (扣20%總資產)" },
+            { type: "disaster", title: "🌋 地震警報襲來！", desc: "花蓮分店遭遇芮氏規模7.8大地震，設備全面移位停擺！" }
+        ];
+
+        let ev = pool[Math.floor(Math.random() * pool.length)];
+        activeEvent = ev;
+        elEventBox.style.display = "flex";
+        elEventTitle.innerText = ev.title;
+        eventTimeLeft = 10;
+        elEventTimer.innerText = eventTimeLeft;
+        playAudio("se-alert");
+
+        if(ev.type === "click") {
+            eventClicks = 0;
+            elEventDesc.innerText = `💥 狂搖進度：0 / ${ev.target}`;
+            elEventActionBtn.innerText = "用純熟單身手速狂搖！";
+            elEventActionBtn.disabled = true;
+        } else if(ev.type === "choice") {
+            elEventDesc.innerText = ev.desc;
+            elEventActionBtn.innerText = "👉 點我選擇戰略";
+            elEventActionBtn.disabled = false;
+        } else if(ev.type === "disaster") {
+            elEventDesc.innerText = ev.desc;
+            elEventActionBtn.innerText = "😭 接受命運";
+            elEventActionBtn.disabled = false;
+        }
+
+        eventTimerId = setInterval(() => {
+            eventTimeLeft--;
+            elEventTimer.innerText = eventTimeLeft;
+            if(eventTimeLeft <= 0) {
+                clearInterval(eventTimerId);
+                resolveRandomEvent(false);
+            }
+        }, 1000);
+    }
+
+    function handleEventClick() {
+        if(!activeEvent) return;
+        if(activeEvent.type === "choice") {
+            clearInterval(eventTimerId);
+            let cost1 = 50000;
+            let cost2 = Math.floor(gameState.money * 0.20);
+            
+            if(confirm(`選擇【策略A】：${activeEvent.opt1}\n選擇【策略B】：${activeEvent.opt2}\n\n點「確定」執行策略A，點「取消」執行策略B。`)) {
+                if(gameState.money >= cost1) {
+                    gameState.money -= cost1;
+                    showLog(`🤫 成功利用黑金紅包塞住勞檢員的嘴巴，危機解除！`);
+                } else {
+                    gameState.money = 0;
+                    showLog(`💸 身上沒5萬現金，紅包給不起！所有錢直接被當場充公罰扣！`);
+                }
+            } else {
+                gameState.money -= cost2;
+                showLog(`⚖️ 選擇正面硬剛！依法繳納了高額化學超標罰款 $${formatMoney(cost2)}！`);
+            }
+            clearEventBox();
+            updateUI();
+        } else if(activeEvent.type === "disaster") {
+            clearInterval(eventTimerId);
+            hualienStopMachine = true;
+            showLog(`🌋 地震引發機台嚴重歪斜！分店全面停工，直至手動同步存檔校正為止！`);
+            clearEventBox();
+            updateUI();
+        }
+    }
+
+    function resolveRandomEvent(success) {
+        clearInterval(eventTimerId);
+        if(activeEvent.type === "click") {
+            if(success) {
+                let reward = Math.floor(calculateGPS() * 120 + 500);
+                gameState.money += reward;
+                gameState.totalEarned += reward;
+                showLog(`💰 爆單大成功！瘋狂手搖滿足了全數顧客，獲取小費 $${formatMoney(reward)}！`);
+                eventDoubleBonusActive = true;
+                setTimeout(() => { eventDoubleBonusActive = false; }, 8000);
+            } else {
+                showLog(`😡 搖得太慢了！排隊顧客集體憤怒離場，商譽受損！`);
+            }
+        } else if(activeEvent.type === "choice" || activeEvent.type === "disaster") {
+            if(!success) {
+                if(activeEvent.type === "choice") {
+                    let penalty = Math.floor(gameState.money * 0.15);
+                    gameState.money -= penalty;
+                    showLog(`⏰ 思考超時！被媒體揭發，商譽暴跌，慘遭開罰 $${formatMoney(penalty)}！`);
+                } else {
+                    hualienStopMachine = true;
+                    showLog(`⏰ 地震波及完成！分店大停工！`);
+                }
+            }
+        }
+        clearEventBox();
+        updateUI();
+    }
+
+    function clearEventBox() {
+        activeEvent = null;
+        elEventBox.style.display = "none";
+    }
+
+    function toggleSettingsModal(show) {
+        elSettingsOverlay.style.display = show ? "flex" : "none";
+    }
+    function toggleAccountModal(show) {
+        elAccountOverlay.style.display = show ? "flex" : "none";
+        if(show) {
+            document.getElementById('modal-logout-zone').style.display = gameState.username ? "block" : "none";
+        }
+    }
+
+    function triggerManualSave() {
+        if(hualienStopMachine) {
+            hualienStopMachine = false;
+            showLog(`🔧 透過與雲端同步校正，花蓮分店的機台已重新擺正，恢復全面營收！`);
+        }
+        if(!gameState.username) {
+            localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+            showLog("💾 【單機存檔】因您尚未登入身分，進度已安全暫存於您的瀏覽器中！");
+            updateUI();
+            return;
+        }
+        showLog("🔄 正在連線總部雲端核心資料庫同步進度...");
+        let payload = { action: "save", username: gameState.username, password: gameState.password, data: JSON.stringify(gameState) };
+        
+        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === "success") {
+                showLog("✅ 【雲端對接成功】帝國營業數據已安全存入 GAS 雲端資料庫！");
+                if(res.leaderboard) {
+                    globalLeaderboard = res.leaderboard;
+                    if(currentTab === "rank") renderRank();
+                }
+                if(res.underAttack !== undefined) {
+                    gameState.underAttack = res.underAttack;
+                }
+            } else {
+                showLog("❌ 【對接駁回】" + res.message);
+            }
+            updateUI();
+        })
+        .catch(err => {
+            showLog("❌ 總部網路連線異常，已自動切換回單機暫存模式。");
+            localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+            updateUI();
+        });
+    }
+
+    function handleAuth(type) {
+        let u = document.getElementById('auth-user').value.trim();
+        let p = document.getElementById('auth-pass').value.trim();
+        if(!u || !p) { alert("請完整填寫大亨註冊帳號與防盜密碼！"); return; }
+        
+        showLog("🔑 正在與總部權限安全中心進行身分核對...");
+        let payload = { action: type, username: u, password: p, data: JSON.stringify(gameState) };
+        
+        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === "success") {
+                gameState.username = u;
+                gameState.password = p;
+                if(type === "login" && res.data) {
+                    try {
+                        let parsed = JSON.parse(res.data);
+                        for(let k in parsed) { gameState[k] = parsed[k]; }
+                        gameState.username = u; 
+                        gameState.password = p;
+                    } catch(e){}
+                    showLog(`🔓 歡迎歸位，店長【${u}】！雲端帝國進度載入成功！`);
+                } else {
+                    showLog(`🆕 恭喜店長【${u}】註冊成功！黑心珍奶王國正式啟航！`);
+                }
+                document.getElementById('btn-account-text').innerText = `店長：${u}`;
+                document.getElementById('logged-status-lbl').style.display = "block";
+                document.getElementById('lbl-status-user').innerText = u;
+                localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+                toggleAccountModal(false);
+                if(res.leaderboard) {
+                    globalLeaderboard = res.leaderboard;
+                }
+            } else {
+                alert("❌ 操作失敗：" + res.message);
+                showLog("❌ 身分驗證失敗：" + res.message);
+            }
+            updateUI();
+        })
+        .catch(err => {
+            alert("❌ 連線失敗，請檢查網路或確認 GAS_API_URL 是否佈署正確！");
+        });
+    }
+
+    function logout() {
+        if(!confirm("確定要登出目前店長身分嗎？登出前請確認已手動同步。")) return;
+        gameState.username = "";
+        gameState.password = "";
+        document.getElementById('btn-account-text').innerText = "管理我的飲料帝國帳號";
+        document.getElementById('logged-status-lbl').style.display = "none";
+        document.getElementById('lbl-status-user').innerText = "遊客";
+        showLog("🚪 已安全登出總部管理帳號，目前切換為遊客單機模式。");
+        toggleAccountModal(false);
+        updateUI();
+    }
+
+    function launchAttack(targetName) {
+        if(!checkAttackPermission()) return;
+        if(!confirm(`確定要派遣記者去【${targetName}】的店裡拍蒼蠅，發動同行惡意商戰嗎？（將消耗您 $10,000 的公關費）`)) return;
+        
+        gameState.money -= 10000;
+        showLog(`📡 正在秘密收買媒體記者前往 【${targetName}】 拍蒼蠅...`);
+        
+        let payload = { action: "attack", username: gameState.username, password: gameState.password, target: targetName };
+        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === "success") {
+                showLog(`🦅 商戰成功！記者已成功在【${targetName}】店裡拍到大蒼蠅，對方營收陷入暴跌！`);
+                if(res.leaderboard) {
+                    globalLeaderboard = res.leaderboard;
+                    if(currentTab === "rank") renderRank();
+                }
+            } else {
+                showLog("❌ 商戰被總部駁回：" + res.message);
+            }
+            updateUI();
+        });
+    }
+
+    function executeChickenClean() {
+        let cost = Math.floor(gameState.totalEarned * 0.05);
+        if(cost < 3000) cost = 3000;
+        if(gameState.money < cost) {
+            showLog("❌ 身上現金不足以支付全台發雞排的洗白公關費！");
+            return;
+        }
+        gameState.money -= cost;
+        showLog("📡 正在全台灣各大分店免費發放愛心雞排洗白社會形象...");
+        
+        let payload = { action: "clean", username: gameState.username, password: gameState.password };
+        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === "success") {
+                gameState.underAttack = false;
+                chickenCleanBonus = true;
+                setTimeout(() => { chickenCleanBonus = false; }, 4000);
+                showLog("✨ 形象大洗白！民眾高喊真良心企業！蒼蠅危機解除，營收全面回歸！");
+            } else {
+                showLog("❌ 洗白失敗：" + res.message);
+            }
+            updateUI();
+        });
+    }
+
+    function resetLocalData() {
+        if(!confirm("⚠️ 警告：這將會清除您本機的所有珍奶大亨進度！確定要重置嗎？")) return;
+        localStorage.removeItem("bubble_tycoon_v12.5_save");
+        location.reload();
+    }
+
+    // 核心循環定時器 (每秒發放 GPS 營收)
+    setInterval(() => {
+        if (chickenCleanBonus) {
+            let bonusGps = calculateGPS();
+            gameState.money += bonusGps;
+            gameState.totalEarned += bonusGps;
+            updateUI();
+        }
+
+        let gps = calculateGPS();
+        gameState.money += gps;
+        gameState.totalEarned += gps;
+        
+        localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+        
+        if (gameState.username && Math.random() < 0.07) {
+            triggerManualSave();
+        }
+        
+        updateUI();
+    }, 1000);
+
+    // 隨機事件定時器
+    setInterval(() => {
+        if (Math.random() < 0.15) triggerRandomEvent();
+    }, 10000);
+
+    window.onload = () => {
+        let localData = localStorage.getItem("bubble_tycoon_v12.5_save");
+        if (localData) {
+            try {
+                let parsed = JSON.parse(localData);
+                for(let k in parsed) { gameState[k] = parsed[k]; }
+                if (gameState.username) {
+                    document.getElementById('btn-account-text').innerText = `店長：${gameState.username}`;
+                    document.getElementById('logged-status-lbl').style.display = "block";
+                    document.getElementById('lbl-status-user').innerText = gameState.username;
+                }
+            } catch(e){}
+        }
+        applySoundSettings();
+        switchTab('upgrade');
+        updateUI();
+    };
+</script>
+
+</body>
+</html>
