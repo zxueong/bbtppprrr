@@ -52,7 +52,7 @@
         .stat-box h3 { margin: 0; font-size: 12px; color: #8c6239; letter-spacing: 0.5px; }
         .stat-box p { margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #d4a373; text-shadow: 0 1px 0px white; }
         .action-section { text-align: center; margin-bottom: 10px; width: 100%; }
-        .main-btn { width: 100%; height: 75px; background: linear-gradient(135deg, #8c6239 0%, #5c3a21 100%); color: white; border: none; font-size: 21px; font-weight: bold; border-radius: 16px; cursor: pointer; box-shadow: 0 6px 15 rgba(92, 58, 33, 0.35), inset 0 2px 0px rgba(255,255,255,0.15); transition: all 0.1s; }
+        .main-btn { width: 100%; height: 75px; background: linear-gradient(135deg, #8c6239 0%, #5c3a21 100%); color: white; border: none; font-size: 21px; font-weight: bold; border-radius: 16px; cursor: pointer; box-shadow: 0 6px 15px rgba(92, 58, 33, 0.35), inset 0 2px 0px rgba(255,255,255,0.15); transition: all 0.1s; }
         .main-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(92, 58, 33, 0.3); }
         #log-msg { text-align: center; color: #8c6a4e; font-weight: bold; height: 36px; margin-bottom: 8px; font-size: 11.5px; display: flex; align-items: center; justify-content: center; padding: 0 8px; }
         .tab-box { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -778,94 +778,123 @@
         }
     }
 
+    // 💡 終極修復相容版雲端儲存
     function triggerManualSave() {
-    if(hualienStopMachine) {
-        hualienStopMachine = false;
-        showLog(`🔧 透過與雲端同步校正，花蓮分店的機台已重新擺正，恢復全面營收！`);
-    }
-    if(!gameState.username) {
-        localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
-        showLog("💾 【單機存檔】因您尚未登入身分，進度已安全暫存於您的瀏覽器中！");
-        updateUI();
-        return;
-    }
-    showLog("🔄 正在連線總部雲端核心資料庫同步進度...");
-    
-    // 💡 修正重點：將欄位名稱從 data 改為後端指定的 saveData，並直接傳送物件物件
-    let payload = { 
-        action: "save", 
-        username: gameState.username, 
-        password: gameState.password, 
-        saveData: gameState 
-    };
-    
-    fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
-    .then(res => res.json())
-    .then(res => {
-        // 💡 修正重點：後端回傳的是 success (true/false)，原本前端誤判為 res.status
-        if(res.success) {
-            showLog("✅ 【雲端對接成功】帝國營業數據已安全存入 GAS 雲端資料庫！");
-            if(res.leaderboard) {
-                globalLeaderboard = res.leaderboard;
-                if(currentTab === "rank") renderRank();
-            }
-            if(res.underAttack !== undefined) {
-                gameState.underAttack = res.underAttack;
-            }
-        } else {
-            // 如果後端回傳 success: false，會把後端的錯誤訊息 msg 印出來
-            showLog("❌ 【對接駁回】" + (res.msg || "未知錯誤"));
+        if(hualienStopMachine) {
+            hualienStopMachine = false;
+            showLog(`🔧 透過與雲端同步校正，花蓮分店的機台已重新擺正，恢復全面營收！`);
         }
-        updateUI();
-    })
-    .catch(err => {
-        showLog("❌ 總部網路連線異常，已自動切換回單機暫存模式。");
-        localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
-        updateUI();
-    });
-}
+        if(!gameState.username) {
+            localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+            showLog("💾 【單機存檔】因您尚未登入身分，進度已安全暫存於您的瀏覽器中！");
+            updateUI();
+            return;
+        }
+        showLog("🔄 正在連線總部雲端核心資料庫同步進度...");
+        
+        let payload = { 
+            action: "save", 
+            username: gameState.username, 
+            password: gameState.password, 
+            saveData: gameState,
+            data: JSON.stringify(gameState) 
+        };
+        
+        fetch(GAS_API_URL, { 
+            method: "POST", 
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload) 
+        })
+        .then(res => res.text())
+        .then(text => {
+            try {
+                let res = JSON.parse(text);
+                if(res.success === true || res.success === "true" || res.status === "success" || res.status === true) {
+                    showLog("✅ 【雲端對接成功】帝國營業數據已安全存入 GAS 雲端資料庫！");
+                    if(res.leaderboard) {
+                        globalLeaderboard = res.leaderboard;
+                        if(currentTab === "rank") renderRank();
+                    }
+                    if(res.underAttack !== undefined) {
+                        gameState.underAttack = res.underAttack;
+                    }
+                } else {
+                    let errMsg = res.msg || res.message || res.error || JSON.stringify(res);
+                    showLog("❌ 【對接駁回】原因：" + errMsg);
+                }
+            } catch(e) {
+                if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+                    showLog("❌ 【對接駁回】後端錯誤！請檢查 GAS 部署是否設定為『任何人』。");
+                } else {
+                    showLog("❌ 【解析錯誤】後端文字：" + text.substring(0, 30));
+                }
+            }
+            updateUI();
+        })
+        .catch(err => {
+            showLog("❌ 總部網路連線異常，已自動切換回單機暫存模式。");
+            localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+            updateUI();
+        });
+    }
 
+    // 💡 終極修復相容版註冊與登入
     function handleAuth(type) {
         let u = document.getElementById('auth-user').value.trim();
         let p = document.getElementById('auth-pass').value.trim();
         if(!u || !p) { alert("請完整填寫大亨註冊帳號與防盜密碼！"); return; }
         
         showLog("🔑 正在與總部權限安全中心進行身分核對...");
-        let payload = { action: type, username: u, password: p, data: JSON.stringify(gameState) };
+        let payload = { 
+            action: type, 
+            username: u, 
+            password: p, 
+            saveData: gameState,
+            data: JSON.stringify(gameState)
+        };
         
-        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === "success") {
-                gameState.username = u;
-                gameState.password = p;
-                if(type === "login" && res.data) {
-                    try {
-                        let parsed = JSON.parse(res.data);
-                        for(let k in parsed) { gameState[k] = parsed[k]; }
-                        gameState.username = u; 
-                        gameState.password = p;
-                    } catch(e){}
-                    showLog(`🔓 歡迎歸位，店長【${u}】！雲端帝國進度載入成功！`);
+        fetch(GAS_API_URL, { 
+            method: "POST", 
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload) 
+        })
+        .then(res => res.text())
+        .then(text => {
+            try {
+                let res = JSON.parse(text);
+                if(res.success === true || res.success === "true" || res.status === "success" || res.status === true) {
+                    gameState.username = u;
+                    gameState.password = p;
+                    let targetData = res.data || res.saveData;
+                    if(type === "login" && targetData) {
+                        try {
+                            let parsed = (typeof targetData === "string") ? JSON.parse(targetData) : targetData;
+                            for(let k in parsed) { gameState[k] = parsed[k]; }
+                            gameState.username = u; 
+                            gameState.password = p;
+                        } catch(e){}
+                        showLog(`🔓 歡迎歸位，店長【${u}】！雲端帝國進度載入成功！`);
+                    } else {
+                        showLog(`🆕 恭喜店長【${u}】註冊成功！黑心珍奶王國正式啟航！`);
+                    }
+                    document.getElementById('btn-account-text').innerText = `店長：${u}`;
+                    document.getElementById('logged-status-lbl').style.display = "block";
+                    document.getElementById('lbl-status-user').innerText = u;
+                    localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+                    toggleAccountModal(false);
+                    if(res.leaderboard) globalLeaderboard = res.leaderboard;
                 } else {
-                    showLog(`🆕 恭喜店長【${u}】註冊成功！黑心珍奶王國正式啟航！`);
+                    let errMsg = res.msg || res.message || res.error || "未知身分錯誤";
+                    alert("❌ 操作失敗：" + errMsg);
+                    showLog("❌ 身分驗證失敗：" + errMsg);
                 }
-                document.getElementById('btn-account-text').innerText = `店長：${u}`;
-                document.getElementById('logged-status-lbl').style.display = "block";
-                document.getElementById('lbl-status-user').innerText = u;
-                localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
-                toggleAccountModal(false);
-                if(res.leaderboard) {
-                    globalLeaderboard = res.leaderboard;
-                }
-            } else {
-                alert("❌ 操作失敗：" + res.message);
-                showLog("❌ 身分驗證失敗：" + res.message);
+            } catch(e) {
+                alert("❌ 解析失敗：後端回傳了非 JSON 格式字串");
             }
             updateUI();
         })
         .catch(err => {
-            alert("❌ 連線失敗，請檢查網路或確認 GAS_API_URL 是否佈署正確！");
+            alert("❌ 連線失敗，請檢查網路或確認 GAS 佈署網址！");
         });
     }
 
@@ -889,18 +918,25 @@
         showLog(`📡 正在秘密收買媒體記者前往 【${targetName}】 拍蒼蠅...`);
         
         let payload = { action: "attack", username: gameState.username, password: gameState.password, target: targetName };
-        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === "success") {
-                showLog(`🦅 商戰成功！記者已成功在【${targetName}】店裡拍到大蒼蠅，對方營收陷入暴跌！`);
-                if(res.leaderboard) {
-                    globalLeaderboard = res.leaderboard;
-                    if(currentTab === "rank") renderRank();
+        fetch(GAS_API_URL, { 
+            method: "POST", 
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload) 
+        })
+        .then(res => res.text())
+        .then(text => {
+            try {
+                let res = JSON.parse(text);
+                if(res.success === true || res.status === "success") {
+                    showLog(`🦅 商戰成功！記者已成功在【${targetName}】店裡拍到大蒼蠅，對方營收陷入暴跌！`);
+                    if(res.leaderboard) {
+                        globalLeaderboard = res.leaderboard;
+                        if(currentTab === "rank") renderRank();
+                    }
+                } else {
+                    showLog("❌ 商戰被總部駁回：" + (res.msg || res.message));
                 }
-            } else {
-                showLog("❌ 商戰被總部駁回：" + res.message);
-            }
+            } catch(e){}
             updateUI();
         });
     }
@@ -916,17 +952,24 @@
         showLog("📡 正在全台灣各大分店免費發放愛心雞排洗白社會形象...");
         
         let payload = { action: "clean", username: gameState.username, password: gameState.password };
-        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === "success") {
-                gameState.underAttack = false;
-                chickenCleanBonus = true;
-                setTimeout(() => { chickenCleanBonus = false; }, 4000);
-                showLog("✨ 形象大洗白！民眾高喊真良心企業！蒼蠅危機解除，營收全面回歸！");
-            } else {
-                showLog("❌ 洗白失敗：" + res.message);
-            }
+        fetch(GAS_API_URL, { 
+            method: "POST", 
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload) 
+        })
+        .then(res => res.text())
+        .then(text => {
+            try {
+                let res = JSON.parse(text);
+                if(res.success === true || res.status === "success") {
+                    gameState.underAttack = false;
+                    chickenCleanBonus = true;
+                    setTimeout(() => { chickenCleanBonus = false; }, 4000);
+                    showLog("✨ 形象大洗白！民眾高喊真良心企業！蒼蠅危機解除，營收全面回歸！");
+                } else {
+                    showLog("❌ 洗白失敗：" + (res.msg || res.message));
+                }
+            } catch(e){}
             updateUI();
         });
     }
