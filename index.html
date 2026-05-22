@@ -779,42 +779,51 @@
     }
 
     function triggerManualSave() {
-        if(hualienStopMachine) {
-            hualienStopMachine = false;
-            showLog(`🔧 透過與雲端同步校正，花蓮分店的機台已重新擺正，恢復全面營收！`);
-        }
-        if(!gameState.username) {
-            localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
-            showLog("💾 【單機存檔】因您尚未登入身分，進度已安全暫存於您的瀏覽器中！");
-            updateUI();
-            return;
-        }
-        showLog("🔄 正在連線總部雲端核心資料庫同步進度...");
-        let payload = { action: "save", username: gameState.username, password: gameState.password, data: JSON.stringify(gameState) };
-        
-        fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === "success") {
-                showLog("✅ 【雲端對接成功】帝國營業數據已安全存入 GAS 雲端資料庫！");
-                if(res.leaderboard) {
-                    globalLeaderboard = res.leaderboard;
-                    if(currentTab === "rank") renderRank();
-                }
-                if(res.underAttack !== undefined) {
-                    gameState.underAttack = res.underAttack;
-                }
-            } else {
-                showLog("❌ 【對接駁回】" + res.message);
-            }
-            updateUI();
-        })
-        .catch(err => {
-            showLog("❌ 總部網路連線異常，已自動切換回單機暫存模式。");
-            localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
-            updateUI();
-        });
+    if(hualienStopMachine) {
+        hualienStopMachine = false;
+        showLog(`🔧 透過與雲端同步校正，花蓮分店的機台已重新擺正，恢復全面營收！`);
     }
+    if(!gameState.username) {
+        localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+        showLog("💾 【單機存檔】因您尚未登入身分，進度已安全暫存於您的瀏覽器中！");
+        updateUI();
+        return;
+    }
+    showLog("🔄 正在連線總部雲端核心資料庫同步進度...");
+    
+    // 💡 修正重點：將欄位名稱從 data 改為後端指定的 saveData，並直接傳送物件物件
+    let payload = { 
+        action: "save", 
+        username: gameState.username, 
+        password: gameState.password, 
+        saveData: gameState 
+    };
+    
+    fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
+    .then(res => res.json())
+    .then(res => {
+        // 💡 修正重點：後端回傳的是 success (true/false)，原本前端誤判為 res.status
+        if(res.success) {
+            showLog("✅ 【雲端對接成功】帝國營業數據已安全存入 GAS 雲端資料庫！");
+            if(res.leaderboard) {
+                globalLeaderboard = res.leaderboard;
+                if(currentTab === "rank") renderRank();
+            }
+            if(res.underAttack !== undefined) {
+                gameState.underAttack = res.underAttack;
+            }
+        } else {
+            // 如果後端回傳 success: false，會把後端的錯誤訊息 msg 印出來
+            showLog("❌ 【對接駁回】" + (res.msg || "未知錯誤"));
+        }
+        updateUI();
+    })
+    .catch(err => {
+        showLog("❌ 總部網路連線異常，已自動切換回單機暫存模式。");
+        localStorage.setItem("bubble_tycoon_v12.5_save", JSON.stringify(gameState));
+        updateUI();
+    });
+}
 
     function handleAuth(type) {
         let u = document.getElementById('auth-user').value.trim();
